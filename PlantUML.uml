@@ -1,0 +1,314 @@
+@startuml
+
+' Configuracion visual basica
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' --- ENUMS ---
+enum Nivel {
+    PRINCIPIANTE
+    INTERMEDIO
+    AVANZADO
+    +getValor(): int
+}
+
+' --- INTERFAZ IPartido (Componente del Decorator) ---
+interface IPartido #FFD700 {
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDuracion(): String
+    +getUbiHora(): String
+    +getNivel(): Nivel
+    +getDescripcion(): String
+}
+
+' --- DECORATOR PATTERN (Deporte) ---
+abstract class DeporteDecorator #FFD700 {
+    #partidoDecorado: IPartido
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDuracion(): String
+    +getUbiHora(): String
+    +getNivel(): Nivel
+    +getDescripcion(): String
+}
+
+class FutbolDecorator {
+    -JUGADORES_POR_DEFECTO: int = 22
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDescripcion(): String
+}
+
+class BasquetDecorator {
+    -JUGADORES_POR_DEFECTO: int = 10
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDescripcion(): String
+}
+
+class VoleyDecorator {
+    -JUGADORES_POR_DEFECTO: int = 12
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDescripcion(): String
+}
+
+class TenisDecorator {
+    -JUGADORES_POR_DEFECTO: int = 2
+    +getTipoDeDeporte(): String
+    +getCantJugadoresReq(): int
+    +getDescripcion(): String
+}
+
+' --- INTERFAZ (VISTA - Consola) ---
+class VistaSistema {
+    -organizador: FacadeOrganizadorDeporte
+    +ejecutarDemo(): void
+    +main(args: String[]): void
+}
+
+' --- REPOSITORIOS ---
+class RepositorioPartidos {
+    -listaPartidos: List<Partido>
+    +agregar(partido: Partido): void
+    +eliminar(partido: Partido): void
+    +obtenerTodos(): List<Partido>
+    +buscarDisponibles(): List<Partido>
+}
+
+class RepositorioUsuarios {
+    -listaUsuarios: List<Usuario>
+    +agregar(usuario: Usuario): void
+    +buscar(mail: String): Usuario
+    +existe(usuario: Usuario): boolean
+    +obtenerTodos(): List<Usuario>
+}
+
+' --- FACADE ---
+class FacadeOrganizadorDeporte {
+    -repositorioUsuarios: RepositorioUsuarios
+    -repositorioPartidos: RepositorioPartidos
+    -factoryGestorPartido: FactoryGestorPartido
+    +registrarUsuario(nombre, mail, contrasena): boolean
+    +registrarUsuario(nombre, mail, contrasena, nivel, deporte): boolean
+    +buscarUsuario(mail: String): Usuario
+    +crearPartido(organizador, deporte, nivel, ubiHora, duracion, cantJug): Partido
+    +decorarPartido(partido: Partido, deporte: String): IPartido
+    +cancelarPartido(organizador: Usuario, partido: Partido): void
+    +inscribirJugador(partido: Partido, jugador: Usuario): boolean
+    +asignarEstrategia(partido: Partido, estrategia: IEstrategiaEmparejamiento): void
+    +agregarObservador(partido: Partido, obs: Observer): void
+    +listarPartidosDisponibles(): List<Partido>
+    +listarTodosLosPartidos(): List<Partido>
+}
+
+' --- FACTORY ---
+class FactoryGestorPartido #D02090 {
+    +crearPartido(deporte, nivel, ubiHora, duracion, cantJug): Partido
+    +decorarConDeporte(partido: IPartido, deporte: String): IPartido
+}
+
+' --- ENTIDADES PRINCIPALES ---
+class Usuario {
+    -nombre: String
+    -mail: String
+    -contrasena: String
+    -nivel: Nivel
+    -deporteFavorito: String
+    -partidosCreados: List<Partido>
+    -partidosInscripto: List<Partido>
+    +agregarPartidoCreado(partido: Partido): void
+    +agregarPartidoInscripto(partido: Partido): void
+}
+
+class Partido {
+    -cantJugadoresReq: int
+    -duracion: String
+    -ubiHora: String
+    -nivel: Nivel
+    -estrategia: IEstrategiaEmparejamiento
+    -state: StatePartido
+    -observadores: List<Observer>
+    -jugadores: List<Usuario>
+    -organizador: Usuario
+    +agregarJugador(jugador: Usuario): boolean
+    +estaCompleto(): boolean
+    +setEstado(estado: StatePartido): void
+    +getEstado(): StatePartido
+    +avanzarEstado(): void
+    +cancelar(): void
+    +agregarObservador(obs: Observer): void
+    +eliminarObservador(obs: Observer): void
+    +notificarObservadores(): void
+}
+
+class Notificacion {
+    -emailOrigen: String
+    -emailDestino: String
+    -mensaje: String
+}
+
+' --- OBSERVER PATTERN ---
+interface Observer #00A693 {
+    +notificar(sujeto: ISujeto): void
+}
+
+interface ISujeto #00A693 {
+    +agregarObservador(obs: Observer): void
+    +eliminarObservador(obs: Observer): void
+    +notificarObservadores(): void
+}
+
+class Notificador {
+    -estrategiaNotificacion: IEstrategiaNotificacion
+    +enviarNotificacion(notificacion: Notificacion): void
+    +cambiarEstrategia(estrategia: IEstrategiaNotificacion): void
+    +notificar(sujeto: ISujeto): void
+}
+
+' --- STRATEGY NOTIFICACION & ADAPTER ---
+interface IEstrategiaNotificacion #00BFFF {
+    +enviarNotificacion(notificacion: Notificacion): void
+}
+
+class NotificacionEmail {
+    -adapterMail: IAdapterMail
+    +enviarNotificacion(notificacion: Notificacion): void
+}
+
+class NotificacionPush {
+    -adapterFirebase: IAdapterFirebase
+    +enviarNotificacion(notificacion: Notificacion): void
+}
+
+interface IAdapterMail {
+    +enviar(notificacion: Notificacion): void
+}
+
+class AdapterJavaMail {
+    +enviar(notificacion: Notificacion): void
+}
+
+interface IAdapterFirebase {
+    +enviar(notificacion: Notificacion): void
+}
+
+class AdapterFirebase {
+    +enviar(notificacion: Notificacion): void
+}
+
+' --- STRATEGY EMPAREJAMIENTO ---
+interface IEstrategiaEmparejamiento #00BFFF {
+    +esCompatible(jugador: Usuario, partido: Partido): boolean
+}
+
+class EmparejamientoPorNivel {
+    +esCompatible(jugador: Usuario, partido: Partido): boolean
+}
+
+class EmparejamientoPorHistorial {
+    +esCompatible(jugador: Usuario, partido: Partido): boolean
+}
+
+class EmparejamientoPorCercania {
+    +esCompatible(jugador: Usuario, partido: Partido): boolean
+}
+
+' --- STATE PATTERN ---
+abstract class StatePartido #32CD32 {
+    +avanzarEstado(partido: Partido): void
+    +getNombre(): String
+}
+
+class FaltanJugadores {
+    +avanzarEstado(partido: Partido): void
+}
+
+class PartidoArmado {
+    +avanzarEstado(partido: Partido): void
+}
+
+class Confirmado {
+    +avanzarEstado(partido: Partido): void
+}
+
+class EnJuego {
+    +avanzarEstado(partido: Partido): void
+}
+
+class Finalizado {
+    +avanzarEstado(partido: Partido): void
+}
+
+class Cancelado {
+    +avanzarEstado(partido: Partido): void
+}
+
+' ===========================================
+' RELACIONES
+' ===========================================
+
+' --- MVC ---
+VistaSistema ..> FacadeOrganizadorDeporte : usa
+
+' --- Facade internals ---
+FacadeOrganizadorDeporte --> RepositorioUsuarios : accede a
+FacadeOrganizadorDeporte --> RepositorioPartidos : accede a
+FacadeOrganizadorDeporte ..> FactoryGestorPartido : utiliza
+
+' --- Factory ---
+FactoryGestorPartido ..> Partido : crea
+FactoryGestorPartido ..> DeporteDecorator : crea
+
+' --- Decorator Pattern ---
+IPartido <|.. Partido
+IPartido <|.. DeporteDecorator
+DeporteDecorator o--> IPartido : decora
+DeporteDecorator <|-- FutbolDecorator
+DeporteDecorator <|-- BasquetDecorator
+DeporteDecorator <|-- VoleyDecorator
+DeporteDecorator <|-- TenisDecorator
+
+' --- Usuario & Partidos ---
+Usuario "1" -- "0..*" Partido : organiza
+Usuario "0..*" -- "0..*" Partido : se inscribe en
+
+' --- Partido implements ISujeto ---
+ISujeto <|.. Partido
+Partido o--> StatePartido : posee
+Partido o--> IEstrategiaEmparejamiento : usa
+
+' --- Observer ---
+Observer <|.. Notificador
+Partido "1" --> "0..*" Observer : notifica
+Notificador --> Notificacion
+Notificador --> IEstrategiaNotificacion
+
+' --- Notification Strategy ---
+IEstrategiaNotificacion <|.. NotificacionEmail
+IEstrategiaNotificacion <|.. NotificacionPush
+
+' --- Adapters ---
+NotificacionEmail --> IAdapterMail
+IAdapterMail <|.. AdapterJavaMail
+NotificacionPush --> IAdapterFirebase
+IAdapterFirebase <|.. AdapterFirebase
+
+' --- Matchmaking Strategy ---
+IEstrategiaEmparejamiento <|.. EmparejamientoPorNivel
+IEstrategiaEmparejamiento <|.. EmparejamientoPorHistorial
+IEstrategiaEmparejamiento <|.. EmparejamientoPorCercania
+
+' --- State ---
+StatePartido <|-- FaltanJugadores
+StatePartido <|-- PartidoArmado
+StatePartido <|-- Confirmado
+StatePartido <|-- EnJuego
+StatePartido <|-- Finalizado
+StatePartido <|-- Cancelado
+
+' --- Otros ---
+Usuario --> Nivel : tiene
+
+@enduml
