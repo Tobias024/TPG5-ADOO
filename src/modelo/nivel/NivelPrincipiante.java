@@ -8,11 +8,5 @@ public class NivelPrincipiante extends NivelBase {
         super("Principiante", 1, 5, siguiente);
     }
 
-    @Override
-    public void avanzar(Usuario usuario) {
-        // Si ya jugo suficientes partidos, sube a intermedio
-        if (getSiguiente() != null) {
-            usuario.setNivel(getSiguiente());
-        }
-    }
+    // avanzar() se hereda de NivelBase: cuenta partidos y sube si llega a 5
 }

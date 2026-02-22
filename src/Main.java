@@ -35,7 +35,9 @@ public class Main {
         OrganizadorDeporteController controller = new OrganizadorDeporteController(
                 vista, servicioUsuarios, servicioPartidos, gestorFlujo);
 
-        // Servicio de notificaciones con email por defecto
+        // Servicio de notificaciones con email
+        // Si las variables MAIL_USERNAME y MAIL_PASSWORD estan seteadas, envia mails reales
+        // Si no, imprime por consola
         IAdapterMail adapterMail = new AdapterJavaMail();
         IEstrategiaNotificacion estrategiaEmail = new NotificacionEmail(adapterMail);
         ServicioNotificaciones servicioNoti = new ServicioNotificaciones(estrategiaEmail);
@@ -47,37 +49,51 @@ public class Main {
         // Loop principal de la aplicacion
         boolean salir = false;
         while (!salir) {
-            int opcion = vista.mostrarMenu();
+            boolean logueado = (usuarioActual != null);
+            String nombre = logueado ? usuarioActual.getNombre() : "";
+            int opcion = vista.mostrarMenu(logueado, nombre);
+
             switch (opcion) {
-                case 1: // Registrarse
+                case 1: // Registrarse (solo sin sesion)
+                    if (logueado) {
+                        vista.mostrarMensaje("Ya tenés una sesion activa. Cerrala primero.");
+                        break;
+                    }
                     DatosRegistroUsuario datosReg = vista.pedirDatosRegistro();
                     usuarioActual = controller.registrarUsuario(datosReg);
                     break;
 
-                case 2: // Login
+                case 2: // Login (solo sin sesion)
+                    if (logueado) {
+                        vista.mostrarMensaje("Ya tenés una sesion activa. Cerrala primero.");
+                        break;
+                    }
                     CredencialesLogin creds = vista.pedirCredenciales();
                     usuarioActual = controller.login(creds.getMail(), creds.getPassword());
                     break;
 
                 case 3: // Crear partido
-                    if (usuarioActual == null) {
+                    if (!logueado) {
                         vista.mostrarMensaje("Tenes que iniciar sesion primero.");
                         break;
                     }
                     DatosCreacionPartido datosPartido = vista.pedirDatosPartido();
                     Partido nuevoPartido = controller.crearPartido(datosPartido, usuarioActual);
                     if (nuevoPartido != null) {
-                        // Le agregamos el notificador como observador
                         nuevoPartido.agregarObservador(notificador);
                     }
                     break;
 
                 case 4: // Ver partidos disponibles
+                    if (!logueado) {
+                        vista.mostrarMensaje("Tenes que iniciar sesion primero.");
+                        break;
+                    }
                     controller.listarPartidosDisponibles();
                     break;
 
                 case 5: // Inscribirse a un partido
-                    if (usuarioActual == null) {
+                    if (!logueado) {
                         vista.mostrarMensaje("Tenes que iniciar sesion primero.");
                         break;
                     }
@@ -91,7 +107,7 @@ public class Main {
                     break;
 
                 case 6: // Cancelar partido
-                    if (usuarioActual == null) {
+                    if (!logueado) {
                         vista.mostrarMensaje("Tenes que iniciar sesion primero.");
                         break;
                     }
@@ -103,6 +119,10 @@ public class Main {
                     break;
 
                 case 7: // Avanzar estado
+                    if (!logueado) {
+                        vista.mostrarMensaje("Tenes que iniciar sesion primero.");
+                        break;
+                    }
                     List<Partido> todosAv = controller.obtenerTodosLosPartidos();
                     int idxAv = vista.elegirPartido(todosAv);
                     if (idxAv >= 0) {
@@ -111,10 +131,21 @@ public class Main {
                     break;
 
                 case 8: // Ver estado
+                    if (!logueado) {
+                        vista.mostrarMensaje("Tenes que iniciar sesion primero.");
+                        break;
+                    }
                     List<Partido> todosVer = controller.obtenerTodosLosPartidos();
                     int idxVer = vista.elegirPartido(todosVer);
                     if (idxVer >= 0) {
                         vista.mostrarEstadoPartido(todosVer.get(idxVer));
+                    }
+                    break;
+
+                case 9: // Cerrar sesion
+                    if (logueado) {
+                        vista.mostrarMensaje("Sesion cerrada. Hasta luego, " + usuarioActual.getNombre() + "!");
+                        usuarioActual = null;
                     }
                     break;
 

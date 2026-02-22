@@ -119,19 +119,26 @@ public class VistaConsola implements IVista {
         }
     }
 
-    // Muestra un menu y devuelve la opcion elegida
-    public int mostrarMenu() {
-        System.out.println("\n===== Menu Principal =====");
-        System.out.println("1. Registrarse");
-        System.out.println("2. Iniciar sesion");
-        System.out.println("3. Crear partido");
-        System.out.println("4. Ver partidos disponibles");
-        System.out.println("5. Inscribirse a un partido");
-        System.out.println("6. Cancelar un partido");
-        System.out.println("7. Avanzar estado de un partido");
-        System.out.println("8. Ver estado de un partido");
+    // Menu dinamico que cambia segun si hay usuario logueado o no
+    public int mostrarMenu(boolean logueado, String nombreUsuario) {
+        System.out.println("\n===== Organizador Deportivo =====");
+
+        if (!logueado) {
+            System.out.println("1. Registrarse");
+            System.out.println("2. Iniciar sesion");
+        } else {
+            System.out.println("Sesion: " + nombreUsuario);
+            System.out.println("3. Crear partido");
+            System.out.println("4. Ver partidos disponibles");
+            System.out.println("5. Inscribirse a un partido");
+            System.out.println("6. Cancelar un partido");
+            System.out.println("7. Avanzar estado de un partido");
+            System.out.println("8. Ver estado de un partido");
+            System.out.println("9. Cerrar sesion");
+        }
         System.out.println("0. Salir");
         System.out.print("Opcion: ");
+
         try {
             return Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
