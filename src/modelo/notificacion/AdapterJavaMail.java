@@ -20,7 +20,8 @@ public class AdapterJavaMail implements IAdapterMail {
         this.password = password;
     }
 
-    // Constructor con config por defecto para Gmail
+    // Constructor con config por defecto para Gmail. "xtest.pruebax@gmail.com" es
+    // un correo REAL, no variable de prueba
     public AdapterJavaMail() {
         this.smtpHost = System.getenv("MAIL_SMTP_HOST") != null
                 ? System.getenv("MAIL_SMTP_HOST")
@@ -33,7 +34,7 @@ public class AdapterJavaMail implements IAdapterMail {
                 : "xtest.pruebax@gmail.com";
         this.password = System.getenv("MAIL_PASSWORD") != null
                 ? System.getenv("MAIL_PASSWORD")
-                : "Hakuna.matat4";
+                : "xpvm fawr pvok ombf";
     }
 
     @Override
