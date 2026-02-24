@@ -35,13 +35,40 @@ Eliminar la asociación de composición `Partido ◆─ CupoPartido`.
 Mantener `OrganizadorDeporteController` y agregar una **Nota UML**:
 > "En la implementación web se divide en: AuthController, PartidoController, UsuarioController, DeporteController, NotificacionController"
 
+### Clases a AGREGAR
+
+| Clase | Responsabilidad |
+|-------|-----------------|
+| `PartidoSchedulerService` | Ejecuta periódicamente (ej. cada 30 s): inicia partidos cuando llega su `fechaHora` (CONFIRMADO → EN_JUEGO) y finaliza partidos cuando se cumple la `duracion` (EN_JUEGO → FINALIZADO). Depende de `PartidoRepository`, `ServicioEstadoPartido`, `GestorFlujoPartido`, `ServicioNotificaciones`. |
+
+### Modificaciones a `GestorFlujoPartido`
+
+| Tipo | Nombre | Firma / Descripción |
+|------|--------|----------------------|
+| Método | `finalizarPorTiempo` | `+finalizarPorTiempo(Partido): Partido` — Finaliza un partido en juego cuando se cumple la duración programada (sin resultado/ganador). Usado por el scheduler. |
+
+### Modificaciones al Repositorio de Partidos
+
+En la implementación web, el repositorio expone una consulta para el scheduler:
+
+| Tipo | Nombre | Descripción |
+|------|--------|-------------|
+| Consulta | `findConfirmadosParaIniciar(now)` | Devuelve partidos en estado CONFIRMADO cuya `fechaHora` es ≤ `now`, para que el scheduler los pase a EN_JUEGO. |
+
+### Nota sobre la aplicación
+
+Agregar **@EnableScheduling** en la clase principal (o equivalente en UML) para habilitar tareas programadas (scheduler).
+
 ### Resumen de Cambios
 
 | Acción | Cantidad | Elementos |
 |--------|----------|-----------|
 | Eliminar | 6 clases | `IVista`, `VistaConsola`, `DatosCreacionPartido`, `DatosRegistroUsuario`, `CredencialesLogin`, `CupoPartido` |
+| Agregar | 1 clase | `PartidoSchedulerService` |
 | Agregar a `Partido` | 2 atributos, 2 métodos | Ver tabla arriba |
-| Agregar | 1 nota UML | División del controlador |
+| Agregar a `GestorFlujoPartido` | 1 método | `finalizarPorTiempo(Partido)` |
+| Agregar al repositorio de Partido | 1 consulta | `findConfirmadosParaIniciar(now)` |
+| Agregar | 1 nota UML | División del controlador; @EnableScheduling |
 
 ---
 
@@ -79,7 +106,7 @@ Implementación Web (MVC Distribuido):
 | **Strategy** | `IEstrategiaEmparejamiento`, `EmparejamientoLibre`, `EmparejamientoPorNivel`, `EmparejamientoPorCercania`, `EmparejamientoPorHistorial` |
 | **Observer** | `ISujeto`, `IObserver`, `GestorObservadores`, `NotificadorObserver` |
 | **Adapter** | `IAdapterMail`, `IAdapterPush`, `AdapterJavaMail`, `AdapterFireBase`, `IEstrategiaNotificacion`, `NotificacionEmail`, `NotificacionPush`, `ServicioNotificaciones` |
-| **Servicios** | `ServicioUsuarios`, `ServicioPartidos`, `ServicioInscripcionPartido`, `ServicioEstadoPartido`, `ServicioCancelacionPartido`, `GestorFlujoPartido`, `ValidadorInscripcion` |
+| **Servicios** | `ServicioUsuarios`, `ServicioPartidos`, `ServicioInscripcionPartido`, `ServicioEstadoPartido`, `ServicioCancelacionPartido`, `GestorFlujoPartido`, `ValidadorInscripcion`, `PartidoSchedulerService` |
 | **Entidades** | `Usuario`, `Partido`, `Deporte`, `Notificacion` |
 | **Niveles** | `INivel`, `NivelBase`, `NivelPrincipiante`, `NivelIntermedio`, `NivelAvanzado` |
 
@@ -102,6 +129,9 @@ Estos cambios son de implementación y **no requieren modificar el diagrama UML*
 ### Seguridad (clases nuevas, no en UML)
 - `JwtTokenProvider`, `JwtAuthFilter`, `UserDetailsServiceImpl`, `SecurityConfig`
 
+### Programación de partidos (scheduler)
+- La aplicación inicia partidos automáticamente cuando llega su `fechaHora` y los finaliza cuando se cumple la `duracion` (parseando cadenas como "2 min", "60 min"). Esto se implementa con `PartidoSchedulerService` y `@Scheduled` (Spring). Para pruebas se admite duración mínima de 2 minutos en el frontend y en el backend.
+
 ---
 
 ## 5. Tabla Comparativa
@@ -115,3 +145,4 @@ Estos cambios son de implementación y **no requieren modificar el diagrama UML*
 | Autenticación | No contemplada | JWT + Spring Security |
 | `CupoPartido` | Clase separada | Embebido en `Partido` |
 | Patrones de diseño | State, Strategy, Observer, Adapter | **Idénticos** |
+| Inicio/fin por fecha y duración | No contemplado | Scheduler (`PartidoSchedulerService`) + `finalizarPorTiempo` en `GestorFlujoPartido` |

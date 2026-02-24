@@ -16,7 +16,7 @@ export default function CreateMatch() {
     deporteId: '',
     ubicacion: '',
     fechaHora: '',
-    duracion: '60 min',
+    duracion: '2 min', // 2 min minimum for testing
     cantidadJugadores: 4,
     nivelMinimo: 'PRINCIPIANTE',
     nivelMaximo: 'AVANZADO',
@@ -91,6 +91,7 @@ export default function CreateMatch() {
               onChange={e => setForm({ ...form, duracion: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
             >
+              <option value="2 min">2 minutos (pruebas)</option>
               <option value="30 min">30 minutos</option>
               <option value="60 min">60 minutos</option>
               <option value="90 min">90 minutos</option>

@@ -60,4 +60,15 @@ public class GestorFlujoPartido {
 
         return partidoRepository.save(partido);
     }
+
+    /** Auto-finalize a match when its scheduled duration has elapsed (no result/winner). */
+    public Partido finalizarPorTiempo(Partido partido) {
+        if (!"EN_JUEGO".equals(partido.getEstadoNombre())) {
+            throw new IllegalStateException("Solo se puede finalizar por tiempo un partido en juego");
+        }
+        partido.agregarObservador(new NotificadorObserver(servicioNotificaciones));
+        partido.setEstado(new EstadoFinalizado());
+        partido.notificarObservadores();
+        return partidoRepository.save(partido);
+    }
 }
