@@ -1,6 +1,6 @@
 # Modificaciones al Modelo UML para la Implementación Web
 
-Este documento describe las diferencias entre el diagrama de clases UML original (`Version2UML.mdj`) y la implementación web con Spring Boot + React + PostgreSQL. Los patrones de diseño del dominio (State, Strategy, Observer, Adapter) se mantuvieron fielmente; los cambios se limitan a la infraestructura.
+Este documento describe las diferencias entre el diagrama de clases UML original (`Version2UML.mdj`) y la implementación web con Spring Boot + React + PostgreSQL. Los patrones de diseño del dominio (State, Strategy, Observer, Adapter, Facade y Factory como apoyo) se mantuvieron fielmente; los cambios se limitan a la infraestructura.
 
 ---
 
@@ -45,7 +45,7 @@ Mantener `OrganizadorDeporteController` y agregar una **Nota UML**:
 
 | Tipo | Nombre | Firma / Descripción |
 |------|--------|----------------------|
-| Método | `finalizarPorTiempo` | `+finalizarPorTiempo(Partido): Partido` — Finaliza un partido en juego cuando se cumple la duración programada (sin resultado/ganador). Usado por el scheduler. |
+| Método | `finalizarPorTiempo` | `+finalizarPorTiempo(Partido): Partido` — Finaliza un partido en juego cuando se cumple la duración programada. Si no hay resultado/ganador definidos, asigna valores aleatorios. Usado por el scheduler. |
 
 ### Modificaciones al Repositorio de Partidos
 
@@ -106,9 +106,11 @@ Implementación Web (MVC Distribuido):
 | **Strategy** | `IEstrategiaEmparejamiento`, `EmparejamientoLibre`, `EmparejamientoPorNivel`, `EmparejamientoPorCercania`, `EmparejamientoPorHistorial` |
 | **Observer** | `ISujeto`, `IObserver`, `GestorObservadores`, `NotificadorObserver` |
 | **Adapter** | `IAdapterMail`, `IAdapterPush`, `AdapterJavaMail`, `AdapterFireBase`, `IEstrategiaNotificacion`, `NotificacionEmail`, `NotificacionPush`, `ServicioNotificaciones` |
+| **Facade** | `GestorFlujoPartido` (interfaz unificada para avanzar estado, cancelar, finalizar con resultado y finalizar por tiempo) |
+| **Factory** | `EstadoPartidoFactory` (creación de estados a partir del nombre), `EstrategiaEmparejamientoFactory` (obtención de estrategia por nombre), `NivelBase.crearPorNombre` (creación de nivel por nombre) |
 | **Servicios** | `ServicioUsuarios`, `ServicioPartidos`, `ServicioInscripcionPartido`, `ServicioEstadoPartido`, `ServicioCancelacionPartido`, `GestorFlujoPartido`, `ValidadorInscripcion`, `PartidoSchedulerService` |
 | **Entidades** | `Usuario`, `Partido`, `Deporte`, `Notificacion` |
-| **Niveles** | `INivel`, `NivelBase`, `NivelPrincipiante`, `NivelIntermedio`, `NivelAvanzado` |
+| **Niveles (State + Factory)** | `INivel`, `NivelBase`, `NivelPrincipiante`, `NivelIntermedio`, `NivelAvanzado` |
 
 ---
 
@@ -122,7 +124,7 @@ Estos cambios son de implementación y **no requieren modificar el diagrama UML*
 
 ### Entidades JPA
 - **Usuario**: agregado `id`, `latitud`, `longitud`; password con BCrypt; nivel como String
-- **Partido**: agregado `id`, `nivelMaximo`, `fechaHora` como `LocalDateTime`; estado como String con `@PostLoad`
+- **Partido**: agregado `id`, `nivelMaximo`, `fechaHora` como `LocalDateTime`, `fechaHoraInicio` (cuando pasa a EN_JUEGO, para calcular duración); estado como String con `@PostLoad` y `EstadoPartidoFactory.crear()`
 - **Notificación**: agregado `id`, `leida`
 - **Deporte**: agregado `id`
 
@@ -144,5 +146,5 @@ Estos cambios son de implementación y **no requieren modificar el diagrama UML*
 | Persistencia | HashMap | PostgreSQL |
 | Autenticación | No contemplada | JWT + Spring Security |
 | `CupoPartido` | Clase separada | Embebido en `Partido` |
-| Patrones de diseño | State, Strategy, Observer, Adapter | **Idénticos** |
+| Patrones de diseño | State, Strategy, Observer, Adapter, Facade, Factory (apoyo) | **Idénticos** |
 | Inicio/fin por fecha y duración | No contemplado | Scheduler (`PartidoSchedulerService`) + `finalizarPorTiempo` en `GestorFlujoPartido` |

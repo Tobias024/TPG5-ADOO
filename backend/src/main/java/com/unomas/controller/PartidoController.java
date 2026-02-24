@@ -1,11 +1,15 @@
 package com.unomas.controller;
 
+import com.unomas.dto.ComentarioRequest;
+import com.unomas.dto.ComentarioResponse;
 import com.unomas.dto.FinalizarPartidoRequest;
 import com.unomas.dto.PartidoRequest;
 import com.unomas.dto.PartidoResponse;
+import com.unomas.model.Comentario;
 import com.unomas.model.Partido;
 import com.unomas.model.Usuario;
 import com.unomas.service.GestorFlujoPartido;
+import com.unomas.service.ServicioComentarios;
 import com.unomas.service.ServicioInscripcionPartido;
 import com.unomas.service.ServicioPartidos;
 import com.unomas.service.ServicioUsuarios;
@@ -23,15 +27,18 @@ public class PartidoController {
     private final ServicioInscripcionPartido servicioInscripcion;
     private final GestorFlujoPartido gestorFlujoPartido;
     private final ServicioUsuarios servicioUsuarios;
+    private final ServicioComentarios servicioComentarios;
 
     public PartidoController(ServicioPartidos servicioPartidos,
                               ServicioInscripcionPartido servicioInscripcion,
                               GestorFlujoPartido gestorFlujoPartido,
-                              ServicioUsuarios servicioUsuarios) {
+                              ServicioUsuarios servicioUsuarios,
+                              ServicioComentarios servicioComentarios) {
         this.servicioPartidos = servicioPartidos;
         this.servicioInscripcion = servicioInscripcion;
         this.gestorFlujoPartido = gestorFlujoPartido;
         this.servicioUsuarios = servicioUsuarios;
+        this.servicioComentarios = servicioComentarios;
     }
 
     @GetMapping
@@ -117,5 +124,21 @@ public class PartidoController {
         }
         partido = gestorFlujoPartido.finalizarConResultado(partido, request);
         return ResponseEntity.ok(PartidoResponse.from(partido));
+    }
+
+    @GetMapping("/{id}/comentarios")
+    public ResponseEntity<List<ComentarioResponse>> listarComentarios(@PathVariable Long id) {
+        servicioPartidos.obtenerPorId(id);
+        List<Comentario> comentarios = servicioComentarios.listarPorPartido(id);
+        return ResponseEntity.ok(comentarios.stream().map(ComentarioResponse::from).toList());
+    }
+
+    @PostMapping("/{id}/comentarios")
+    public ResponseEntity<ComentarioResponse> crearComentario(@PathVariable Long id,
+                                                              @Valid @RequestBody ComentarioRequest request,
+                                                              Authentication auth) {
+        Usuario usuario = servicioUsuarios.obtenerPorMail(auth.getName());
+        Comentario comentario = servicioComentarios.crear(id, request, usuario);
+        return ResponseEntity.ok(ComentarioResponse.from(comentario));
     }
 }

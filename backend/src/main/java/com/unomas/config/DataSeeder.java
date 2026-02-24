@@ -85,6 +85,12 @@ public class DataSeeder implements CommandLineRunner {
         p5.setEstadoNombre("FINALIZADO");
         partidoRepo.save(p5);
 
+        // Partido 6: Demo scheduler - CONFIRMADO, starts in 3 min, duration 2 min (auto-start then auto-end)
+        Partido p6 = crearPartido(tenis, diego, "Cancha Demo Scheduler", LocalDateTime.now().plusMinutes(3), "2 min", 2, "PRINCIPIANTE", "AVANZADO", "LIBRE");
+        p6.getJugadores().addAll(List.of(diego, ana));
+        p6.setEstadoNombre("CONFIRMADO");
+        partidoRepo.save(p6);
+
         // Sample notifications
         notifRepo.save(new Notificacion(carlos, "Nuevo partido de Futbol en Parque Centenario", "PUSH"));
         notifRepo.save(new Notificacion(carlos, "Nuevo partido de Futbol en Parque Centenario", "EMAIL"));

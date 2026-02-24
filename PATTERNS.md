@@ -1,6 +1,6 @@
 # Patrones de Diseño Implementados - Uno Mas
 
-Este documento describe los patrones de diseño utilizados en el sistema "Uno Mas", un sistema de gestión de encuentros deportivos. Se implementaron cinco patrones del catálogo: **State**, **Strategy**, **Observer**, **Adapter** y **Facade**.
+Este documento describe los patrones de diseño utilizados en el sistema "Uno Mas", un sistema de gestión de encuentros deportivos. Se implementaron cinco patrones del catálogo: **State**, **Strategy**, **Observer**, **Adapter** y **Facade**, además del patrón **Factory** (Simple Factory) como apoyo en la creación de estados y estrategias.
 
 ---
 
@@ -81,7 +81,7 @@ FALTAN_JUGADORES → ARMADO → CONFIRMADO → EN_JUEGO → FINALIZADO
    - `EstadoEnJuego.avanzar()`: transiciona a `EstadoFinalizado`.
    - `EstadoFinalizado` y `EstadoCancelado`: son estados terminales, `avanzar()` no hace nada.
 
-3. **Persistencia**: Como los estados son objetos transitorios (`@Transient`), se almacena el nombre del estado como `String` en la base de datos. `EstadoPartidoFactory.crear()` reconstruye el objeto correcto al cargar la entidad (`@PostLoad`).
+3. **Persistencia**: Como los estados son objetos transitorios (`@Transient`), se almacena el nombre del estado como `String` en la base de datos. La reconstrucción del objeto de estado correcto al cargar la entidad (`@PostLoad`) o al invocar `getEstado()` se delega en el **patrón Factory**: `EstadoPartidoFactory.crear(nombre)` devuelve la instancia concreta según el nombre (véase sección 6).
 
 4. **`Partido.avanzarEstado()`** delega al estado actual:
    ```java
@@ -160,7 +160,7 @@ classDiagram
    - `EmparejamientoPorCercania`: calcula la distancia geográfica (fórmula de Haversine) entre jugador y organizador, aceptando jugadores dentro de 20 km.
    - `EmparejamientoPorHistorial`: requiere un mínimo de 3 victorias previas para unirse.
 
-3. **`EstrategiaEmparejamientoFactory`**: Resuelve la estrategia correcta a partir del nombre almacenado en el partido. Usa inyección de dependencias de Spring para recolectar todas las implementaciones.
+3. **`EstrategiaEmparejamientoFactory`** (patrón Factory): Resuelve la estrategia correcta a partir del nombre almacenado en el partido. Usa inyección de dependencias de Spring para recolectar todas las implementaciones de `IEstrategiaEmparejamiento` y las expone por nombre; si el nombre no existe, devuelve la estrategia "LIBRE" (véase sección 6).
 
 4. **`ValidadorInscripcion`**: Valida múltiples condiciones antes de usar la estrategia:
    ```java
@@ -357,7 +357,7 @@ classDiagram
 
 ## Patrón Arquitectónico: MVC
 
-Además de los cuatro patrones de diseño, el sistema sigue el patrón arquitectónico **Model-View-Controller**:
+Además de los cinco patrones de diseño, el sistema sigue el patrón arquitectónico **Model-View-Controller**:
 
 - **Model**: Entidades JPA (`Usuario`, `Partido`, `Deporte`, `Notificacion`) y la lógica de dominio (estados, estrategias, observadores, adaptadores).
 - **View**: Frontend React que presenta la interfaz al usuario.
@@ -383,6 +383,7 @@ classDiagram
         +avanzarEstado(Partido) Partido
         +cancelarPartido(Partido, Usuario) Partido
         +finalizarConResultado(Partido, FinalizarPartidoRequest) Partido
+        +finalizarPorTiempo(Partido) Partido
     }
     class ServicioEstadoPartido {
         +avanzar(Partido) Partido
@@ -417,14 +418,75 @@ classDiagram
    }
    ```
 
-3. **Operaciones complejas**: Encapsula lógica compleja como `finalizarConResultado()` que actualiza resultados, asigna ganador, incrementa victorias y notifica jugadores.
+3. **Operaciones complejas**: Encapsula lógica como `finalizarConResultado()` (actualiza resultados, asigna ganador, incrementa victorias y notifica) y `finalizarPorTiempo()` (cierra automáticamente un partido en juego cuando se cumple la duración programada, generando resultado y ganador aleatorios si no se definieron). Además utiliza `PartidoRepository` y `ServicioUsuarios` para persistencia y obtención del ganador.
 
 ### Archivos involucrados
 
 - `backend/src/main/java/com/unomas/service/GestorFlujoPartido.java`
 - `backend/src/main/java/com/unomas/service/ServicioEstadoPartido.java`
 - `backend/src/main/java/com/unomas/service/ServicioCancelacionPartido.java`
-- `backend/src/main/java/com/unomas/service/ServicioInscripcionPartido.java`
+
+---
+
+## 6. Patrón Factory (Simple Factory)
+
+### Propósito
+
+Centraliza la creación de objetos sin exponer la lógica de instanciación al cliente. El cliente trabaja con una interfaz o tipo base y recibe la implementación concreta adecuada según un identificador (por ejemplo, un nombre). Así se evita usar `new` de clases concretas disperso en el código y se facilita añadir nuevos tipos en un solo lugar.
+
+### Implementaciones en el sistema
+
+Hay tres usos claros del Factory en el proyecto:
+
+1. **`EstadoPartidoFactory`** (estados del partido):  
+   Clase con método estático `crear(String nombre)` que, dado el nombre del estado persistido en base de datos (`"FALTAN_JUGADORES"`, `"ARMADO"`, etc.), devuelve la instancia correcta de `IEstadoPartido`. Se usa en `Partido` en `@PostLoad` y en `getEstado()` para reconstruir el objeto de estado a partir de `estadoNombre`. Si el nombre no es reconocido, lanza `IllegalArgumentException`.
+
+2. **`EstrategiaEmparejamientoFactory`** (estrategias de emparejamiento):  
+   Componente de Spring que recibe por inyección todas las implementaciones de `IEstrategiaEmparejamiento`. Las indexa por `getNombre()` y expone `obtener(String nombre)` para devolver la estrategia correspondiente. Si el nombre no existe, devuelve la estrategia `"LIBRE"`. Lo usa `ValidadorInscripcion` para obtener la estrategia configurada en el partido.
+
+3. **`NivelBase.crearPorNombre(String nombre)`** (niveles de jugador):  
+   Método estático que devuelve la implementación de `INivel` según el nombre (`"PRINCIPIANTE"`, `"INTERMEDIO"`, `"AVANZADO"`). Por defecto devuelve `NivelPrincipiante`. La jerarquía de nivel también sigue un patrón tipo State (transición entre niveles con `avanzar(Usuario)`); ver sección 7.
+
+### Diagrama (Factory de estados)
+
+```mermaid
+classDiagram
+    class EstadoPartidoFactory {
+        +crear(String nombre) IEstadoPartido
+    }
+    class IEstadoPartido {
+        <<interface>>
+        +avanzar(Partido)
+        +getNombre() String
+    }
+    Partido ..> EstadoPartidoFactory : usa en @PostLoad / getEstado()
+    EstadoPartidoFactory ..> IEstadoPartido : crea implementaciones
+```
+
+### Archivos involucrados
+
+- `backend/src/main/java/com/unomas/model/estado/EstadoPartidoFactory.java`
+- `backend/src/main/java/com/unomas/model/emparejamiento/EstrategiaEmparejamientoFactory.java`
+- `backend/src/main/java/com/unomas/model/nivel/NivelBase.java` (método `crearPorNombre`)
+
+---
+
+## 7. State y Factory en el modelo Nivel
+
+El paquete `model/nivel` modela el **nivel del jugador** (PRINCIPIANTE, INTERMEDIO, AVANZADO) con una jerarquía que combina **State** y **Factory**:
+
+- **Interfaz `INivel`**: Define `getNombre()`, `getValor()` y `avanzar(Usuario)`. Cada nivel concreto puede transicionar al siguiente cuando el usuario cumple condiciones (por ejemplo, victorias).
+- **Clases concretas**: `NivelPrincipiante`, `NivelIntermedio`, `NivelAvanzado` extienden `NivelBase` e implementan `avanzar()` para pasar al siguiente nivel o mantenerse (avanzado es terminal).
+- **Factory**: `NivelBase.crearPorNombre(String)` construye la instancia de `INivel` según el nombre; se usa cuando se necesita un objeto nivel a partir del valor persistido.
+- **Uso en emparejamiento**: `EmparejamientoPorNivel` usa `NivelBase.getValorPorNombre(String)` para comparar nivel del jugador con `nivelMinimo` y `nivelMaximo` del partido (sin instanciar estados).
+
+### Archivos involucrados
+
+- `backend/src/main/java/com/unomas/model/nivel/INivel.java`
+- `backend/src/main/java/com/unomas/model/nivel/NivelBase.java`
+- `backend/src/main/java/com/unomas/model/nivel/NivelPrincipiante.java`
+- `backend/src/main/java/com/unomas/model/nivel/NivelIntermedio.java`
+- `backend/src/main/java/com/unomas/model/nivel/NivelAvanzado.java`
 
 ---
 
@@ -437,3 +499,5 @@ classDiagram
 | Observer | `model/observador/`              | Notificar automáticamente a los jugadores cuando cambia el estado de un partido        |
 | Adapter  | `model/notificacion/`            | Desacoplar el sistema de los servicios externos de notificación (email y push)         |
 | Facade   | `service/GestorFlujoPartido`     | Simplificar la coordinación de servicios para operaciones del ciclo de vida del partido |
+| Factory  | `model/estado/`, `model/emparejamiento/`, `model/nivel/` | Centralizar la creación de estados, estrategias y niveles a partir de un nombre        |
+| State + Factory | `model/nivel/`           | Modelar el nivel del jugador (PRINCIPIANTE → INTERMEDIO → AVANZADO) y su creación por nombre |

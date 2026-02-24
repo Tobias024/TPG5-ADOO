@@ -22,6 +22,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/unomas
       SPRING_DATASOURCE_USERNAME: unomas
       SPRING_DATASOURCE_PASSWORD: unomas123

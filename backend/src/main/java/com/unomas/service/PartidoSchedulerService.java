@@ -49,6 +49,7 @@ public class PartidoSchedulerService {
         for (Partido p : paraIniciar) {
             try {
                 p.agregarObservador(new NotificadorObserver(servicioNotificaciones));
+                p.setFechaHoraInicio(now); // actual start time for duration calculation
                 Partido actualizado = servicioEstadoPartido.avanzar(p);
                 partidoRepository.save(actualizado);
                 log.info("Partido {} iniciado automáticamente (fecha/hora alcanzada)", p.getId());
@@ -62,7 +63,9 @@ public class PartidoSchedulerService {
         for (Partido p : enJuego) {
             try {
                 int minutos = parseDuracionMinutos(p.getDuracion());
-                LocalDateTime finPrevisto = p.getFechaHora().plusMinutes(minutos);
+                // Use actual start time so match stays EN_JUEGO for full duration
+                LocalDateTime inicio = p.getFechaHoraInicio() != null ? p.getFechaHoraInicio() : p.getFechaHora();
+                LocalDateTime finPrevisto = inicio.plusMinutes(minutos);
                 if (!now.isBefore(finPrevisto)) {
                     gestorFlujoPartido.finalizarPorTiempo(p);
                     log.info("Partido {} finalizado automáticamente (duración cumplida)", p.getId());

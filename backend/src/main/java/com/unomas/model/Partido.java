@@ -37,6 +37,10 @@ public class Partido implements ISujeto {
     @Column(nullable = false)
     private LocalDateTime fechaHora;
 
+    /** Actual start time when match moved to EN_JUEGO (used for duration end check). */
+    @Column
+    private LocalDateTime fechaHoraInicio;
+
     @Column(nullable = false)
     private String duracion;
 
@@ -146,6 +150,8 @@ public class Partido implements ISujeto {
     public void setUbicacion(String ubicacion) { this.ubicacion = ubicacion; }
     public LocalDateTime getFechaHora() { return fechaHora; }
     public void setFechaHora(LocalDateTime fechaHora) { this.fechaHora = fechaHora; }
+    public LocalDateTime getFechaHoraInicio() { return fechaHoraInicio; }
+    public void setFechaHoraInicio(LocalDateTime fechaHoraInicio) { this.fechaHoraInicio = fechaHoraInicio; }
     public String getDuracion() { return duracion; }
     public void setDuracion(String duracion) { this.duracion = duracion; }
     public int getCantidadJugadores() { return cantidadJugadores; }

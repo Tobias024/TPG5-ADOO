@@ -9,6 +9,10 @@ import com.unomas.model.observador.NotificadorObserver;
 import com.unomas.repository.PartidoRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 @Service
 public class GestorFlujoPartido {
 
@@ -32,6 +36,9 @@ public class GestorFlujoPartido {
 
     public Partido avanzarEstado(Partido partido) {
         partido.agregarObservador(new NotificadorObserver(servicioNotificaciones));
+        if ("CONFIRMADO".equals(partido.getEstadoNombre())) {
+            partido.setFechaHoraInicio(LocalDateTime.now());
+        }
         return servicioEstadoPartido.avanzar(partido);
     }
 
@@ -61,11 +68,27 @@ public class GestorFlujoPartido {
         return partidoRepository.save(partido);
     }
 
-    /** Auto-finalize a match when its scheduled duration has elapsed (no result/winner). */
+    /** Auto-finalize a match when its scheduled duration has elapsed. Assigns random result and winner if none set. */
     public Partido finalizarPorTiempo(Partido partido) {
         if (!"EN_JUEGO".equals(partido.getEstadoNombre())) {
             throw new IllegalStateException("Solo se puede finalizar por tiempo un partido en juego");
         }
+
+        // If no result was set by the user, generate a random result
+        if (partido.getResultadoEquipo1() == null || partido.getResultadoEquipo2() == null) {
+            int score1 = ThreadLocalRandom.current().nextInt(0, 11);
+            int score2 = ThreadLocalRandom.current().nextInt(0, 11);
+            partido.setResultadoEquipo1(score1);
+            partido.setResultadoEquipo2(score2);
+
+            List<Usuario> jugadores = partido.getJugadores();
+            if (jugadores != null && !jugadores.isEmpty() && partido.getGanador() == null) {
+                Usuario ganador = jugadores.get(ThreadLocalRandom.current().nextInt(jugadores.size()));
+                partido.setGanador(ganador);
+                ganador.setVictorias(ganador.getVictorias() + 1);
+            }
+        }
+
         partido.agregarObservador(new NotificadorObserver(servicioNotificaciones));
         partido.setEstado(new EstadoFinalizado());
         partido.notificarObservadores();

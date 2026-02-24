@@ -33,6 +33,15 @@ interface Partido {
   ganadorNombre?: string;
 }
 
+interface Comentario {
+  id: number;
+  partidoId: number;
+  usuarioId: number;
+  usuarioNombre: string;
+  texto: string;
+  fechaCreacion: string;
+}
+
 export default function MatchDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -44,12 +53,29 @@ export default function MatchDetail() {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [selectedWinner, setSelectedWinner] = useState<number | null>(null);
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [comentarioTexto, setComentarioTexto] = useState('');
+  const [loadingComentarios, setLoadingComentarios] = useState(false);
+  const [postingComentario, setPostingComentario] = useState(false);
 
   const fetchPartido = () => {
     api.get(`/partidos/${id}`).then(res => setPartido(res.data)).finally(() => setLoading(false));
   };
 
+  const fetchComentarios = () => {
+    if (!id) return;
+    setLoadingComentarios(true);
+    api.get(`/partidos/${id}/comentarios`)
+      .then(res => setComentarios(res.data))
+      .catch(() => setComentarios([]))
+      .finally(() => setLoadingComentarios(false));
+  };
+
   useEffect(() => { fetchPartido(); }, [id]);
+
+  useEffect(() => {
+    if (partido?.estado === 'FINALIZADO') fetchComentarios();
+  }, [partido?.id, partido?.estado]);
 
   if (loading || !partido) {
     return (
@@ -62,9 +88,23 @@ export default function MatchDetail() {
   const isOrganizer = user?.id === partido.organizadorId;
   const isPlayer = partido.jugadores.some(j => j.id === user?.id);
   const canJoin = partido.estado === 'FALTAN_JUGADORES' && !isPlayer;
-  const canPlayNow = isOrganizer && ['ARMADO', 'CONFIRMADO'].includes(partido.estado);
+  const canPlayNow = isOrganizer && partido.estado === 'CONFIRMADO'; // start immediately
+  const canConfirmSchedule = isOrganizer && partido.estado === 'ARMADO'; // confirm and wait for scheduled time to auto-start
   const canFinalize = isOrganizer && partido.estado === 'EN_JUEGO';
   const canCancel = isOrganizer && !['FINALIZADO', 'CANCELADO', 'EN_JUEGO'].includes(partido.estado);
+
+  const handleConfirmSchedule = async () => {
+    setActing(true);
+    try {
+      const res = await api.post(`/partidos/${id}/avanzar`);
+      setPartido(res.data);
+      toast.success('Partido confirmado. Se iniciará automáticamente a la hora programada.');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al confirmar');
+    } finally {
+      setActing(false);
+    }
+  };
 
   const handleJoin = async () => {
     setActing(true);
@@ -82,11 +122,7 @@ export default function MatchDetail() {
   const handlePlayNow = async () => {
     setActing(true);
     try {
-      let res = await api.post(`/partidos/${id}/avanzar`);
-      // If we were in ARMADO, we're now in CONFIRMADO, advance again to EN_JUEGO
-      if (res.data.estado === 'CONFIRMADO') {
-        res = await api.post(`/partidos/${id}/avanzar`);
-      }
+      const res = await api.post(`/partidos/${id}/avanzar`);
       setPartido(res.data);
       toast.success('¡El partido está en juego!');
     } catch (err: any) {
@@ -120,10 +156,28 @@ export default function MatchDetail() {
       setPartido(res.data);
       setShowFinalizeModal(false);
       toast.success('Partido finalizado!');
+      fetchComentarios();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Error al finalizar');
     } finally {
       setActing(false);
+    }
+  };
+
+  const handleEnviarComentario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const texto = comentarioTexto.trim();
+    if (!texto || !user) return;
+    setPostingComentario(true);
+    try {
+      const res = await api.post(`/partidos/${id}/comentarios`, { texto });
+      setComentarios(prev => [...prev, res.data]);
+      setComentarioTexto('');
+      toast.success('Comentario publicado');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al publicar comentario');
+    } finally {
+      setPostingComentario(false);
     }
   };
 
@@ -224,6 +278,54 @@ export default function MatchDetail() {
             </div>
           )}
 
+          {partido.estado === 'FINALIZADO' && (
+            <div className="border-t border-gray-100 pt-5 mb-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Comentarios</h3>
+              {user && (
+                <form onSubmit={handleEnviarComentario} className="mb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={comentarioTexto}
+                      onChange={(e) => setComentarioTexto(e.target.value)}
+                      placeholder="Escribe un comentario..."
+                      maxLength={1000}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                    <button
+                      type="submit"
+                      disabled={postingComentario || !comentarioTexto.trim()}
+                      className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {postingComentario ? '...' : 'Enviar'}
+                    </button>
+                  </div>
+                </form>
+              )}
+              {loadingComentarios ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+              ) : comentarios.length === 0 ? (
+                <p className="text-gray-500 text-sm">Aún no hay comentarios. ¡Sé el primero en comentar!</p>
+              ) : (
+                <div className="space-y-3">
+                  {comentarios.map(c => (
+                    <div key={c.id} className="bg-gray-50 rounded-lg px-4 py-3">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="font-medium text-gray-900 text-sm">{c.usuarioNombre}</span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(c.fechaCreacion).toLocaleDateString('es-AR')} {new Date(c.fechaCreacion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{c.texto}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3">
             {canJoin && (
               <button
@@ -232,6 +334,15 @@ export default function MatchDetail() {
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50"
               >
                 Unirme al Partido
+              </button>
+            )}
+            {canConfirmSchedule && (
+              <button
+                onClick={handleConfirmSchedule}
+                disabled={acting}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                Confirmar (iniciar a la hora programada)
               </button>
             )}
             {canPlayNow && (
