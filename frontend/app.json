@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "SubastAR",
+    "slug": "subastar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#710000"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.subastar.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#710000"
+      },
+      "package": "com.subastar.app"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8080"
+    }
+  }
+}

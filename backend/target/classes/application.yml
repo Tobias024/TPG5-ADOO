@@ -1,41 +1,26 @@
+server:
+  port: 8080
+
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/unomas}
-    username: ${SPRING_DATASOURCE_USERNAME:unomas}
-    password: ${SPRING_DATASOURCE_PASSWORD:unomas123}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/subastar}
+    username: ${SPRING_DATASOURCE_USERNAME:subastar}
+    password: ${SPRING_DATASOURCE_PASSWORD:subastar123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
 
 jwt:
-  secret: ${JWT_SECRET:UnoMasSecretKeyForJWT2026SuperSecureTokenGeneration}
-  expiration-ms: 86400000
+  secret: ${JWT_SECRET:SubastARSecretKeyForJWT2026SuperSecureTokenGeneration}
+  expiration: 86400000
 
-server:
-  port: 8080
-
-app:
-  mail:
-    enabled: ${MAIL_ENABLED:false}
-    from: ${MAIL_FROM:unomas@app.com}
+logging:
+  level:
+    com.subastar: INFO
+    org.springframework.security: WARN

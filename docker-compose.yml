@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: unomas
-      POSTGRES_USER: unomas
-      POSTGRES_PASSWORD: unomas123
+      POSTGRES_DB: subastar
+      POSTGRES_USER: subastar
+      POSTGRES_PASSWORD: subastar123
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U unomas"]
+      test: ["CMD-SHELL", "pg_isready -U subastar"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,27 +22,14 @@ services:
     ports:
       - "8080:8080"
     environment:
-      TZ: ${TZ:-America/Argentina/Buenos_Aires}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/unomas
-      SPRING_DATASOURCE_USERNAME: unomas
-      SPRING_DATASOURCE_PASSWORD: unomas123
-      JWT_SECRET: UnoMasSecretKeyForJWT2026SuperSecureTokenGeneration
-      MAIL_ENABLED: ${MAIL_ENABLED:-false}
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM: ${MAIL_FROM:-unomas@app.com}
+      TZ: America/Argentina/Buenos_Aires
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/subastar
+      SPRING_DATASOURCE_USERNAME: subastar
+      SPRING_DATASOURCE_PASSWORD: subastar123
+      JWT_SECRET: SubastARSecretKeyForJWT2026SuperSecureTokenGeneration
     depends_on:
       postgres:
         condition: service_healthy
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
 
 volumes:
   pgdata:

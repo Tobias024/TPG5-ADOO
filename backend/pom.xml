@@ -11,10 +11,10 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.unomas</groupId>
-    <artifactId>unomas-backend</artifactId>
+    <groupId>com.subastar</groupId>
+    <artifactId>subastar-backend</artifactId>
     <version>1.0.0</version>
-    <name>Uno Mas Backend</name>
+    <name>SubastAR Backend</name>
 
     <properties>
         <java.version>17</java.version>
@@ -64,10 +64,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
     </dependencies>
 

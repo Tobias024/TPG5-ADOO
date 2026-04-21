@@ -1,0 +1,846 @@
+openapi: 3.0.3
+info:
+  title: "Trabajo práctico Desarrollo de aplicaciones I: SubastAR"
+  description: >
+    APIs para la aplicación SubastAR. Incluye solo los endpoints
+    de las pantallas del flujo principal del cliente.
+  version: 1.0.0
+
+tags:
+  - name: Auth
+    description: Autenticación de usuarios.
+  - name: Países
+    description: Listado de países (usado en registro).
+  - name: Personas
+    description: Registro y perfil del usuario.
+  - name: Clientes
+    description: Datos del cliente vinculado al usuario.
+  - name: Subastas
+    description: Listado y detalle de subastas activas.
+  - name: Catálogos
+    description: Catálogo de productos por subasta.
+  - name: Item-Catálogos
+    description: Ítems individuales dentro de un catálogo.
+  - name: Asistentes
+    description: Inscripción a una subasta.
+  - name: Pujos
+    description: Ofertas realizadas durante una subasta.
+  - name: Productos
+    description: Productos enviados a subastar por el usuario.
+  - name: Fotos
+    description: Imágenes asociadas a un producto.
+  - name: Registros
+    description: Historial de ventas finalizadas.
+  - name: Métodos de Pago
+    description: Medios de pago del cliente.
+  - name: Notificaciones
+    description: Notificaciones y alertas del usuario.
+
+paths:
+
+  # ─── AUTH ────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login exitoso. Devuelve token de acceso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Cuerpo de la solicitud inválido o campos faltantes.
+        '401':
+          description: Credenciales incorrectas.
+
+  # ─── PAÍSES ──────────────────────────────────────────────────────────────────
+
+  /paises/todos:
+    get:
+      tags: [Países]
+      summary: Obtener todos los países
+      responses:
+        '200':
+          description: Lista de países. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pais'
+
+  # ─── PERSONAS ────────────────────────────────────────────────────────────────
+
+  /personas:
+    post:
+      tags: [Personas]
+      summary: Registrar una nueva persona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Persona'
+      responses:
+        '201':
+          description: Persona registrada exitosamente.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+
+  /personas/{idPersona}:
+    get:
+      tags: [Personas]
+      summary: Obtener datos de perfil
+      parameters:
+        - name: idPersona
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la persona.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Persona'
+        '404':
+          description: No se encontró una persona con el ID indicado.
+    put:
+      tags: [Personas]
+      summary: Actualizar datos de perfil
+      parameters:
+        - name: idPersona
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Persona'
+      responses:
+        '200':
+          description: Perfil actualizado exitosamente.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+        '404':
+          description: No se encontró una persona con el ID indicado.
+
+  # ─── CLIENTES ────────────────────────────────────────────────────────────────
+
+  /clientes:
+    post:
+      tags: [Clientes]
+      summary: Registrar un nuevo cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRegistro'
+      responses:
+        '201':
+          description: Cliente registrado exitosamente.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+
+  /clientes/{idCliente}:
+    get:
+      tags: [Clientes]
+      summary: Obtener datos del cliente
+      parameters:
+        - name: idCliente
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '404':
+          description: No se encontró un cliente con el ID indicado.
+
+  /clientes/{idCliente}/metricas:
+    get:
+      tags: [Clientes]
+      summary: Obtener métricas del cliente
+      description: Devuelve estadísticas agregadas para la pantalla de Métricas.
+      parameters:
+        - name: idCliente
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Métricas del cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricasCliente'
+        '404':
+          description: No se encontró un cliente con el ID indicado.
+
+  # ─── SUBASTAS ────────────────────────────────────────────────────────────────
+
+  /subastas/todos:
+    get:
+      tags: [Subastas]
+      summary: Obtener todas las subastas
+      responses:
+        '200':
+          description: Lista de subastas. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subasta'
+
+  /subastas/{idSubasta}:
+    get:
+      tags: [Subastas]
+      summary: Obtener detalle de una subasta
+      parameters:
+        - name: idSubasta
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la subasta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subasta'
+        '404':
+          description: No se encontró una subasta con el ID indicado.
+
+  # ─── CATÁLOGOS ───────────────────────────────────────────────────────────────
+
+  /catalogos/{idCatalogo}:
+    get:
+      tags: [Catálogos]
+      summary: Obtener catálogo de una subasta
+      parameters:
+        - name: idCatalogo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del catálogo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalogo'
+        '404':
+          description: No se encontró un catálogo con el ID indicado.
+
+  # ─── ITEM-CATÁLOGOS ──────────────────────────────────────────────────────────
+
+  /items-catalogo/todos:
+    get:
+      tags: [Item-Catálogos]
+      summary: Obtener todos los ítems de catálogos
+      responses:
+        '200':
+          description: Lista de ítems. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemCatalogo'
+
+  /items-catalogo/{idItem}:
+    get:
+      tags: [Item-Catálogos]
+      summary: Obtener un ítem de catálogo por ID
+      parameters:
+        - name: idItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del ítem.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemCatalogo'
+        '404':
+          description: No se encontró un ítem con el ID indicado.
+
+  # ─── ASISTENTES ──────────────────────────────────────────────────────────────
+
+  /asistentes:
+    post:
+      tags: [Asistentes]
+      summary: Inscribirse a una subasta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asistente'
+      responses:
+        '201':
+          description: Asistente registrado exitosamente.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+
+  # ─── PUJOS ───────────────────────────────────────────────────────────────────
+
+  /pujos/todos:
+    get:
+      tags: [Pujos]
+      summary: Obtener historial de pujos
+      responses:
+        '200':
+          description: Lista de pujos. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pujo'
+
+  /pujos:
+    post:
+      tags: [Pujos]
+      summary: Registrar una oferta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pujo'
+      responses:
+        '201':
+          description: Pujo registrado exitosamente.
+        '400':
+          description: Datos inválidos o importe menor al mínimo permitido.
+
+  # ─── PRODUCTOS ───────────────────────────────────────────────────────────────
+
+  /productos:
+    post:
+      tags: [Productos]
+      summary: Registrar un producto para subastar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Producto'
+      responses:
+        '201':
+          description: Producto registrado. Solicitud enviada.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+
+  /productos/duenio/{idDuenio}:
+    get:
+      tags: [Productos]
+      summary: Obtener productos propios del usuario
+      description: Devuelve los productos del dueño para la pantalla Mis Subastas.
+      parameters:
+        - name: idDuenio
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de productos del dueño. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Producto'
+        '404':
+          description: No se encontró un dueño con el ID indicado.
+
+  /productos/{idProducto}/confirmacion:
+    post:
+      tags: [Productos]
+      summary: Confirmar o rechazar participación en subasta
+      description: El cliente acepta o rechaza la propuesta de subasta para su producto (pantalla Solicitud Aceptada).
+      parameters:
+        - name: idProducto
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmacionProducto'
+      responses:
+        '200':
+          description: Confirmación registrada exitosamente.
+        '400':
+          description: Datos inválidos.
+        '404':
+          description: No se encontró el producto con el ID indicado.
+
+  # ─── FOTOS ───────────────────────────────────────────────────────────────────
+
+  /productos/{idProducto}/fotos:
+    get:
+      tags: [Fotos]
+      summary: Obtener fotos de un producto
+      parameters:
+        - name: idProducto
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de fotos del producto.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Foto'
+        '404':
+          description: No se encontró un producto con el ID indicado.
+
+  /fotos:
+    post:
+      tags: [Fotos]
+      summary: Subir fotos de un producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Foto'
+      responses:
+        '201':
+          description: Foto subida exitosamente.
+        '400':
+          description: Datos inválidos o producto no encontrado.
+
+  # ─── REGISTROS ───────────────────────────────────────────────────────────────
+
+  /registros-subasta/todos:
+    get:
+      tags: [Registros]
+      summary: Obtener historial de ventas
+      responses:
+        '200':
+          description: Lista de registros de ventas. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegistroSubasta'
+
+  # ─── MÉTODOS DE PAGO ─────────────────────────────────────────────────────────
+
+  /metodos-pago/cliente/{idCliente}:
+    get:
+      tags: [Métodos de Pago]
+      summary: Obtener métodos de pago del cliente
+      description: Devuelve los medios de pago registrados para la pantalla Agregar Método de Pago.
+      parameters:
+        - name: idCliente
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de métodos de pago. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetodoPago'
+        '404':
+          description: No se encontró un cliente con el ID indicado.
+
+  /metodos-pago:
+    post:
+      tags: [Métodos de Pago]
+      summary: Agregar un método de pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetodoPago'
+      responses:
+        '201':
+          description: Método de pago agregado exitosamente.
+        '400':
+          description: Datos inválidos o campos requeridos faltantes.
+
+  /metodos-pago/{idMetodo}:
+    delete:
+      tags: [Métodos de Pago]
+      summary: Eliminar un método de pago
+      parameters:
+        - name: idMetodo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Método de pago eliminado.
+        '404':
+          description: No se encontró el método de pago con el ID indicado.
+
+  # ─── NOTIFICACIONES ──────────────────────────────────────────────────────────
+
+  /notificaciones/cliente/{idCliente}:
+    get:
+      tags: [Notificaciones]
+      summary: Obtener notificaciones del cliente
+      description: Devuelve alertas como solicitudes aceptadas/rechazadas, nuevas subastas y adquisiciones.
+      parameters:
+        - name: idCliente
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de notificaciones. Puede ser un array vacío.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notificacion'
+        '404':
+          description: No se encontró un cliente con el ID indicado.
+
+components:
+  schemas:
+
+    LoginRequest:
+      type: object
+      required: [documento, contrasenia]
+      properties:
+        documento:
+          type: string
+        contrasenia:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        idPersona:
+          type: integer
+
+    Pais:
+      type: object
+      required: [numero, nombre, capital, nacionalidad, idiomas]
+      properties:
+        numero:
+          type: integer
+        nombre:
+          type: string
+        nombreCorto:
+          type: string
+        capital:
+          type: string
+        nacionalidad:
+          type: string
+        idiomas:
+          type: string
+
+    Persona:
+      type: object
+      required: [documento, nombre]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        documento:
+          type: string
+        nombre:
+          type: string
+        direccion:
+          type: string
+        estado:
+          type: string
+          enum: [activo, inactivo]
+        foto:
+          type: string
+          format: byte
+
+    ClienteRegistro:
+      type: object
+      required: [identificador]
+      properties:
+        identificador:
+          type: integer
+          description: ID de la persona recién creada.
+        numeroPais:
+          type: integer
+
+    Cliente:
+      type: object
+      properties:
+        identificador:
+          type: integer
+        numeroPais:
+          type: integer
+        admitido:
+          type: string
+          enum: [si, no]
+        categoria:
+          type: string
+          enum: [comun, especial, plata, oro, platino]
+        verificador:
+          type: integer
+
+    MetricasCliente:
+      type: object
+      properties:
+        totalGastado:
+          type: number
+          format: double
+        subastasParticipadas:
+          type: integer
+        subastasGanadas:
+          type: integer
+        tasaExito:
+          type: number
+          format: double
+          description: Porcentaje de subastas ganadas sobre participadas.
+        mayorPuja:
+          type: number
+          format: double
+
+    Subasta:
+      type: object
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        fecha:
+          type: string
+          format: date
+        hora:
+          type: string
+          example: "14:30:00"
+        estado:
+          type: string
+          enum: [abierta, cerrada]
+        subastador:
+          type: integer
+        ubicacion:
+          type: string
+        capacidadAsistentes:
+          type: integer
+        categoria:
+          type: string
+          enum: [comun, especial, plata, oro, platino]
+
+    Catalogo:
+      type: object
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        descripcion:
+          type: string
+        subasta:
+          type: integer
+        responsable:
+          type: integer
+
+    ItemCatalogo:
+      type: object
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        catalogo:
+          type: integer
+        producto:
+          type: integer
+        precioBase:
+          type: number
+          format: double
+        comision:
+          type: number
+          format: double
+        subastado:
+          type: string
+          enum: [si, no]
+
+    Asistente:
+      type: object
+      required: [numeroPostor, cliente, subasta]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        numeroPostor:
+          type: integer
+        cliente:
+          type: integer
+        subasta:
+          type: integer
+
+    Pujo:
+      type: object
+      required: [asistente, item, importe]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        asistente:
+          type: integer
+        item:
+          type: integer
+        importe:
+          type: number
+          format: double
+          minimum: 0.02
+        ganador:
+          type: string
+          enum: [si, no]
+          default: "no"
+
+    Producto:
+      type: object
+      required: [descripcionCompleta, duenio]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        fecha:
+          type: string
+          format: date
+        disponible:
+          type: string
+          enum: [si, no]
+        descripcionCatalogo:
+          type: string
+          maxLength: 500
+        descripcionCompleta:
+          type: string
+          maxLength: 300
+        duenio:
+          type: integer
+        seguro:
+          type: string
+          maxLength: 30
+
+    ConfirmacionProducto:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [aceptar, rechazar]
+          description: Respuesta del dueño a la propuesta de subasta.
+
+    Foto:
+      type: object
+      required: [producto, foto]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        producto:
+          type: integer
+        foto:
+          type: string
+          format: binary
+
+    RegistroSubasta:
+      type: object
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        subasta:
+          type: integer
+        duenio:
+          type: integer
+        producto:
+          type: integer
+        cliente:
+          type: integer
+        importe:
+          type: number
+          format: double
+        comision:
+          type: number
+          format: double
+
+    MetodoPago:
+      type: object
+      required: [cliente, proveedor, ultimosDigitos]
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        cliente:
+          type: integer
+        proveedor:
+          type: string
+          description: Ej. Mercado Pago, MasterCard, Visa.
+        ultimosDigitos:
+          type: string
+          maxLength: 4
+          description: Últimos 4 dígitos para identificar el medio.
+
+    Notificacion:
+      type: object
+      properties:
+        identificador:
+          type: integer
+          readOnly: true
+        cliente:
+          type: integer
+        tipo:
+          type: string
+          enum: [solicitud_aceptada, solicitud_rechazada, nueva_subasta, subasta_adquirida]
+        mensaje:
+          type: string
+        leida:
+          type: string
+          enum: [si, no]
+          default: "no"
+        fecha:
+          type: string
+          format: date-time

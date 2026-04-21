@@ -1,80 +1,84 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import api from '../api/client';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login as loginApi, getPersona, getCliente } from '../api';
+import { Persona, Cliente } from '../types';
 
-interface User {
-  id: number;
-  nombre: string;
-  mail: string;
-}
-
-interface AuthContextType {
-  user: User | null;
+interface AuthState {
   token: string | null;
-  login: (mail: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
+  idPersona: number | null;
+  idCliente: number | null;
+  persona: Persona | null;
+  cliente: Cliente | null;
+  cargando: boolean;
 }
 
-interface RegisterData {
-  nombre: string;
-  mail: string;
-  password: string;
-  nivel?: string;
-  deporteFavoritoId?: number;
+interface AuthContextValue extends AuthState {
+  login: (documento: string, contrasenia: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<AuthState>({
+    token: null,
+    idPersona: null,
+    idCliente: null,
+    persona: null,
+    cliente: null,
+    cargando: true,
   });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
   useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [token]);
+    AsyncStorage.multiGet(['token', 'idPersona', 'idCliente']).then(([[, token], [, idPersona], [, idCliente]]) => {
+      setState(s => ({
+        ...s,
+        token,
+        idPersona: idPersona ? Number(idPersona) : null,
+        idCliente: idCliente ? Number(idCliente) : null,
+        cargando: false,
+      }));
+    });
+  }, []);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
+  const login = async (documento: string, contrasenia: string) => {
+    const response = await loginApi({ documento, contrasenia });
+    const { token, idPersona } = response;
 
-  const login = async (mail: string, password: string) => {
-    const res = await api.post('/auth/login', { mail, password });
-    setToken(res.data.token);
-    setUser({ id: res.data.id, nombre: res.data.nombre, mail: res.data.mail });
+    let idCliente: number | null = null;
+    let persona: Persona | null = null;
+    let cliente: Cliente | null = null;
+
+    try {
+      persona = await getPersona(idPersona);
+      const clienteData = await getCliente(idPersona);
+      cliente = clienteData;
+      idCliente = clienteData.identificador;
+    } catch (_) {}
+
+    await AsyncStorage.multiSet([
+      ['token', token],
+      ['idPersona', String(idPersona)],
+      ['idCliente', idCliente ? String(idCliente) : ''],
+    ]);
+
+    setState({ token, idPersona, idCliente, persona, cliente, cargando: false });
   };
 
-  const register = async (data: RegisterData) => {
-    const res = await api.post('/auth/register', data);
-    setToken(res.data.token);
-    setUser({ id: res.data.id, nombre: res.data.nombre, mail: res.data.mail });
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    await AsyncStorage.multiRemove(['token', 'idPersona', 'idCliente']);
+    setState({ token: null, idPersona: null, idCliente: null, persona: null, cliente: null, cargando: false });
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ ...state, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  return ctx;
 }
